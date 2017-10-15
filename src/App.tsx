@@ -1,59 +1,47 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
+import { StyleProvider } from '@shoutem/theme'
+import { View } from '@shoutem/ui'
 import * as React from 'react'
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native'
+import { ApolloProvider } from 'react-apollo'
+import { AsyncStorage, StatusBar } from 'react-native'
+// tslint:disable-next-line:import-name
+import codePush from 'react-native-code-push'
+import { persistStore } from 'redux-persist'
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' +
-    'Cmd+D or shake for dev menu',
-  android: 'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-})
+import { RubiconNoir } from 'shoutem-components'
+import AppNavigator from './navigation/AppNavigator'
+import { client, configureStore } from './reducers'
+
+const store = configureStore()
 
 class App extends React.Component<any, any> {
-  render() {
+  constructor() {
+    super()
+    this.state = { rehydrated: false }
+  }
+
+  componentWillMount() {
+    persistStore(store, { storage: AsyncStorage, blacklist: [] }, () => {
+      this.setState({ rehydrated: true })
+    })
+  }
+
+  render () {
+    if (!this.state.rehydrated) {
+      return null
+    }
     return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit App.js
-        </Text>
-        <Text style={styles.instructions}>
-          {instructions}
-        </Text>
-      </View>
+      <ApolloProvider store={store} client={client}>
+        <StyleProvider style={RubiconNoir}>
+          <View styleName='flexible'>
+            <StatusBar barStyle='light-content' />
+            <AppNavigator />
+          </View>
+        </StyleProvider>
+      </ApolloProvider>
     )
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
-})
+const codePushOptions = { checkFrequency: codePush.CheckFrequency.ON_APP_RESUME }
 
-export default App
+export default codePush(codePushOptions)(App)
